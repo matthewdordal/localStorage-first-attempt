@@ -1,0 +1,95 @@
+//Check if localStorage is available.  The space for localStorage may be full.
+function checkAvailable() {
+    var test = 'test';
+    try {
+        localStorage.setItem(test, test);
+        localStorage.removeItem(test);
+        return true;
+    } catch(e) {
+        return false;
+    }
+};
+
+
+
+//ajax request for data.  Set localStorage to 'myGithub' if localStorage is available.
+function jax () {
+    $.ajax({
+        url : 'https://api.github.com/users/matthewdordal',
+        dataType : 'json',
+        success : function (data) {
+            if ( localStorage ) {
+                //Store data in localStorage
+                localStorage.setItem( 'myGithub', JSON.stringify(data) );  
+                
+                //Create timeStamp item to store in localStorage. This will be our cacheKey to decide when to clear myGithub from localStorage.
+                //create Date object
+                var d = new Date(); 
+                //Get numerical value of time from date object
+                var today = d.getTime();
+                //additional time adds 10 seconds. Extra Example: 24hr * 60min * 60sec * 1000msec
+                var additionalTime = 1 * 10 * 1000;
+                //create new Date as the current time plus the additionalTime
+                var expireCacheAtThisTime = new Date(today + additionalTime);
+                // store the timeStampe in localStorage.
+                localStorage.setItem( 'timeStamp', expireCacheAtThisTime );
+            }
+            console.log(data);
+            render(data);
+        }
+    });
+};
+
+//Render method for printing the results to the <body> element.
+//Returns html from the ajax call or from localStorage.
+function render (myObjx) {
+    var results = '';
+    
+    for (var prop in myObjx) {
+        results += '<p>data.' + prop + ' = ' + myObjx[prop] + '</p>';  
+    }
+    
+    var printData = $('body').html(results);
+    return printData;
+};
+
+// Check the timeStamp item in localStorage.
+// If timeStamp is less than the current time remove the items from 
+// localStorage and run the jax() function again.
+function checkCache() {
+    var getTimeStamp = localStorage.getItem('timeStamp');
+    
+    // localStorage only adds data as a String.
+    // Date().toString turns Date() from an object to a string.
+    // This allows timeStampe in localStorage to be evaluated against the current time.
+    if ( getTimeStamp && getTimeStamp < new Date().toString() ) {
+        console.log( 'getTimeStamp = ' + getTimeStamp + '\n' + 'current Date = ' + new Date() ); 
+        console.log( 'getTimeStamp = ' + typeof getTimeStamp + '\n' + 'current Date = ' + typeof new Date().toString() );
+        localStorage.removeItem('timeStamp');
+        localStorage.removeItem('myGithub'); 
+    } 
+    else {
+        console.log( 'getTimeStamp = ' + getTimeStamp + '\n' + 'current Date = ' + new Date() ); 
+        console.log( 'getTimeStamp = ' + typeof getTimeStamp + '\n' + 'current Date = ' + typeof new Date().toString() ); 
+    }
+};
+
+function init () {
+    //checkCache() removes items from localeStorage by checkinglocalStorage for timeStamp.
+    checkCache();
+    
+    //If localStorage is available, and if the item 'myGithub' exists, and if space for 
+    //localStorage is available.
+    if ( localStorage && localStorage.getItem('myGithub')  && checkAvailable() === true) {
+        console.log('if statement - myGithub IS in localStorage')
+        render( JSON.parse( localStorage.getItem( 'myGithub' ) ) );  
+    }
+    else {
+        console.log('else statement - myGithub IS NOT in localStorage');
+        jax();   
+    }
+    
+};
+
+init();
+
